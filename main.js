@@ -118,11 +118,13 @@ function addUrlToList(shortUrl, longUrl) {
   child.appendChild(btn)
 
   let text = document.createElement('a')
-  text.innerText = window.location.protocol + "//" + window.location.host + "/" + shortUrl + " "
+  text.innerText = "短链接"
   text.href =  window.location.protocol + "//" + window.location.host + "/" + shortUrl
+  text.target = "_blank"
   child.appendChild(text)
   text = document.createElement('a')
-  text.innerText = longUrl
+  text.innerText = "长链接"
+  text.target = "_blank"
   text.href =  longUrl
   child.appendChild(text)
 
