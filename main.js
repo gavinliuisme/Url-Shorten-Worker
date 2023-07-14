@@ -123,7 +123,7 @@ function addUrlToList(shortUrl, longUrl) {
   text.target = "_blank"
   child.appendChild(text)
   text = document.createElement('a')
-  text.innerText = longUrl
+  text.innerText = "长链接"
   text.target = "_blank"
   text.href =  longUrl
   child.appendChild(text)
