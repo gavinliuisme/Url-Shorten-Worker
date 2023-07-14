@@ -77,9 +77,9 @@
     <script src="https://cdn.jsdelivr.net/gh/gavinliuisme/Url-Shorten-Worker@gh-pages/main.js" crossorigin="anonymous"></script>
   -->
   <script>
-    const myjson = 'myconsole'
-    const keys = Object.keys(myjson);
-    foreach(const key in keys){
+    var myjson = 'myconsole'
+    var keys = Object.keys(myjson);
+    foreach(var key in keys){
       if(key!='password'){
         addUrlToList(key, myjson.valueOf(key))
       }
