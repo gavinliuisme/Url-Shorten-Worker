@@ -118,7 +118,10 @@ function addUrlToList(shortUrl, longUrl) {
   child.appendChild(btn)
 
   let text = document.createElement('span')
-  text.innerText = window.location.protocol + "//" + window.location.host + "/" + shortUrl + " " + longUrl
+  text.innerText = longUrl
+  child.appendChild(text)
+  text = document.createElement('span')
+  text.innerText = window.location.protocol + "//" + window.location.host + "/" + shortUrl + " "
   child.appendChild(text)
 
   urlList.append(child)
