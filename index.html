@@ -81,8 +81,8 @@
     var keys = Object.keys(myjson);
     keys.forEach(function(key) {      
       if(key!='password' && key!='mypage'){
-        localStorage.setItem(key, myjson.valueOf(key));
-        addUrlToList(key, myjson.valueOf(key))
+        localStorage.setItem(key, myjson[key]);
+        addUrlToList(key, myjson[key])
       }
     });
   </script>
