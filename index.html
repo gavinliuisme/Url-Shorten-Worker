@@ -80,7 +80,7 @@
     var myjson = 'myconsole'
     var keys = Object.keys(myjson);
     keys.forEach(function(key) {      
-      if(key!='password'){
+      if(key!='password' && key!='mypage'){
         addUrlToList(key, myjson.valueOf(key))
       }
     });
