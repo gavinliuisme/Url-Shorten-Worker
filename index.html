@@ -79,11 +79,11 @@
   <script>
     var myjson = 'myconsole'
     var keys = Object.keys(myjson);
-    foreach(var key in keys){
+    keys.forEach(function(key) {      
       if(key!='password'){
         addUrlToList(key, myjson.valueOf(key))
       }
-    }
+    });
   </script>
 </body>
 </html>
