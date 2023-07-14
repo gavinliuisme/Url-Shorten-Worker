@@ -29,8 +29,10 @@ function shorturl() {
         addUrlToList(keyPhrase, valueLongURL)
 
         document.getElementById("result").innerHTML = window.location.protocol + "//" + window.location.host + "/" + res.key;
+        document.getElementById("btncopy").style.display='block'
       } else {
         document.getElementById("result").innerHTML = res.error;
+        document.getElementById("btncopy").style.display='none'
       }
 
       $('#resultModal').modal('show')
@@ -160,8 +162,10 @@ function deleteShortUrl(delKeyPhrase) {
         loadUrlList()
 
         document.getElementById("result").innerHTML = "删除成功"
+        document.getElementById("btncopy").style.display='none'
       } else {
         document.getElementById("result").innerHTML = res.error;
+        document.getElementById("btncopy").style.display='none'
       }
 
       $('#resultModal').modal('show')
