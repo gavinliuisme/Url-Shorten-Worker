@@ -1,24 +1,37 @@
 <!doctype html>
 <html>
 <script>
-  var myHeaders = new Headers();
-  myHeaders.append("Content-Type", "application/json");
+  // 获取请求的 body 参数
+  function getRequestBody(request) {
+    return request.text();
+  }
 
-  var raw = JSON.stringify({
-    "title": "AliyunDrive Pro",
-    "content": "签到详情"
+  // 发起请求并返回响应
+  function fetchResponse(url, body) {
+    return fetch(url, {
+      method: 'POST',
+      body: body,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+  }
+
+  // 处理请求
+  addEventListener('fetch', event => {
+    event.respondWith(handleRequest(event.request));
   });
 
-  var requestOptions = {
-    method: 'POST',
-    headers: myHeaders,
-    body: raw,
-    redirect: 'follow'
-  };
+  async function handleRequest(request) {
+    // 获取请求的 body 参数
+    const requestBody = await getRequestBody(request);
 
-  fetch("https://push.bygavin.tk", requestOptions)
-    .then(response => response.text())
-    .then(result => console.log(result))
-    .catch(error => console.log('error', error));
+    // 请求另一个 URL 并返回响应
+    const response = await fetchResponse('https://push.bygavin.tk', requestBody);
+
+    // 返回另一个 URL 的响应
+    return response;
+  }
+
 </script>
 </body>
