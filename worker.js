@@ -1,20 +1,31 @@
 const config = {
-  result_page: false, // After get the value from KV, if use a page to show the result.
-  theme: "", // Homepage theme, use the empty value for default theme. To use urlcool theme, please fill with "theme/urlcool" .
-  cors: true, // Allow Cross-origin resource sharing for API requests.
-  unique_link: false, // If it is true, the same long url will be shorten into the same short url
-  custom_link: true, // Allow users to customize the short url.
-  overwrite_kv: false, // Allow user to overwrite an existed key.
-  snapchat_mode: false, // The link will be distroyed after access.
-  visit_count: false, // Count visit times.
-  load_kv: false, // Load all from Cloudflare KV
-  system_type: "shorturl", // shorturl, imghost, other types {pastebin, journal}
+  password: "", // 管理面板使用密码 // if password != null, then use this config; otherwise, read password from KV.
+  result_page: false, // 是否用特定的result页面来显示value // After get the value from KV, if use a page to show the result.
+  theme: "", // 管理面板的主题 // Homepage theme, use the empty value for default theme. To use urlcool theme, please fill with "theme/urlcool" .
+  cors: true, // 是否允许CORS使用API // Allow Cross-origin resource sharing for API requests.
+  unique_link: false, // 一个长链是否只有唯一的短链(会增加写入的使用量) // If it is true, the same long url will be shorten into the same short url
+  custom_link: true, // 允许自定义短链 // Allow users to customize the short url.
+  overwrite_kv: false, // 允许覆盖已存在的key // Allow user to overwrite an existed key.
+  snapchat_mode: false, // 短链只能访问一次(访问后就删除了) // The link will be distroyed after access.
+  visit_count: false, // 使用记数(会大大增加写入的使用量, 多人共用不推荐打开) // Count visit times.
+  load_kv: false, // 从KV加载全部数据(自用推荐打开, 多人共用会看到别人的数据) // Load all from Cloudflare KV
+  system_type: "shorturl", // 系统的功能定义 // shorturl, imghost, other types {pastebin, journal}
 }
 
 // key in protect_keylist can't read, add, del from UI and API
 const protect_keylist = [
   "password",
 ]
+
+// ====== R2 S3 API 配置 (文件保管站 file-r2 模式) ======
+// 以下变量推荐通过 Cloudflare 面板的环境变量(Variables)/加密机密(Secrets)注入, 作为全局变量自动可用
+// 注意: 面板中的变量名必须与代码完全一致(注意大小写敏感)
+// 偷懒也可以直接在这里赋值
+//   R2_ACCOUNT_ID        = "" // - R2 账户 ID (明文变量)
+//   R2_ACCESS_KEY_ID     = "" // - S3 API Access Key ID (建议设为加密 Secret)
+//   R2_SECRET_ACCESS_KEY = "" // - S3 API Secret Access Key (建议设为加密 Secret)
+//   R2_BUCKET_NAME       = "" // - R2 存储桶名称 (明文变量)
+//   R2_PUBLIC_URL        = "" // - R2 公开访问 URL, 如 https://pub-xxxx.r2.dev (明文变量)
 
 let index_html = "https://crazypeace.github.io/Url-Shorten-Worker/" + config.theme + "/index.html"
 let result_html = "https://crazypeace.github.io/Url-Shorten-Worker/" + config.theme + "/result.html"
@@ -31,6 +42,9 @@ const html404 = `<!DOCTYPE html>
 let response_header = {
   "Content-type": "text/html;charset=UTF-8;application/json",
 }
+let response_header_plain = {
+  "Content-type": "text/plain;charset=UTF-8;",
+}
 
 if (config.cors) {
   response_header = {
@@ -38,6 +52,11 @@ if (config.cors) {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "POST",
     "Access-Control-Allow-Headers": "Content-Type",
+  }
+  
+  response_header_plain = {
+  "Content-type": "text/plain;charset=UTF-8;",
+    "Access-Control-Allow-Origin": "*",
   }
 }
 
@@ -115,12 +134,24 @@ async function is_url_exist(url_sha512) {
   }
 }
 
+// 系统密码
+async function system_password() {
+  // 配置中的passoword为空 config.password is NULL
+  if (config.password.trim().length === 0 ) {    
+    // 查KV中的password对应的值 Query "password" in KV
+    return await LINKS.get("password");
+  }
+  else {
+    return config.password.trim();
+  }
+}
+
 async function handleRequest(request) {
   // console.log(request)
 
-  // 查KV中的password对应的值 Query "password" in KV
-  const password_value = await LINKS.get("password");
-
+  // 系统密码
+  const password_value  = await system_password();
+  
   /************************/
   // 以下是API接口的处理 Below is operation for API
 
@@ -294,11 +325,13 @@ async function handleRequest(request) {
   // 如果path为空, 即直接访问本worker
   // If visit this worker directly (no path)
   if (!path) {
-    return Response.redirect("https://zelikk.blogspot.com/search/label/Url-Shorten-Worker", 302)
-    /* new Response(html404, {
+    // return Response.redirect("https://zelikk.blogspot.com/search/label/Url-Shorten-Worker", 302)
+    // /* 
+    return new Response(html404, {
       headers: response_header,
       status: 404
-    }) */
+    }) 
+    // */
   }
 
   // 如果path符合password 显示操作页面index.html
@@ -307,8 +340,16 @@ async function handleRequest(request) {
     let index = await fetch(index_html)
     index = await index.text()
     index = index.replace(/__PASSWORD__/gm, password_value)
-    // 操作页面文字修改
-    // index = index.replace(/短链系统变身/gm, "")
+    // 注入 R2 配置 (全局变量)
+    index = index.replace(/__R2_ACCOUNT_ID__/gm, (typeof R2_ACCOUNT_ID !== 'undefined') ? R2_ACCOUNT_ID : '')
+    index = index.replace(/__R2_ACCESS_KEY_ID__/gm, (typeof R2_ACCESS_KEY_ID !== 'undefined') ? R2_ACCESS_KEY_ID : '')
+    index = index.replace(/__R2_SECRET_ACCESS_KEY__/gm, (typeof R2_SECRET_ACCESS_KEY !== 'undefined') ? R2_SECRET_ACCESS_KEY : '')
+    index = index.replace(/__R2_BUCKET_NAME__/gm, (typeof R2_BUCKET_NAME !== 'undefined') ? R2_BUCKET_NAME : '')
+    index = index.replace(/__R2_PUBLIC_URL__/gm, (typeof R2_PUBLIC_URL !== 'undefined') ? R2_PUBLIC_URL : '')
+    if (!config.load_kv) {
+      index = index.replace(/onclick='loadR2ToKV\(\)'/gm, "onclick='' disabled")
+      index = index.replace(/onclick='loadKV\(\)'/gm, "onclick='' disabled")
+    }
     return new Response(index, {
       headers: response_header,
     })
@@ -382,9 +423,7 @@ async function handleRequest(request) {
   } else {
     // 如果只是一个单纯的key-value系统, 简单的显示value就行了
     return new Response(value, {
-      headers: {
-          "Content-type": "text/plain;charset=UTF-8;",
-        },
+      headers: response_header_plain,
     })
   }
 }
